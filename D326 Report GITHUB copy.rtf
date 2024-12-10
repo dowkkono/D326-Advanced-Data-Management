@@ -1,0 +1,138 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033{\fonttbl{\f0\fnil\fcharset0 Times New Roman;}{\f1\fnil\fcharset2 Symbol;}}
+{\colortbl ;\red255\green0\blue0;\red0\green0\blue255;}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\qc\f0\fs24\lang9 DVD RENTAL BUSINESS ANALYSIS\par
+\par
+
+\pard\sa200\sl276\slmult1 A.  Summarize one real-world written business report that can be created from the DVD Dataset from the \ldblquote Labs on Demand Assessment Environment and DVD Database\rdblquote  attachment. \par
+Based on the data depicted in the DVD Rental Business database, I chose to analyze which customers had a tendency to rent the same film more than once. Business owners and stakeholders may be interested in capitalizing on a subgroup of customers who enjoy a particular film to the extent of renting it on more than one occasion. Businesses may opt to provide incentives, such as discounts for future rentals of the same film, any prequels/sequels to that film or films with similar criteria, such as genre and plotlines.\par
+\par
+A1.  Identify the specific fields that will be included in the detailed table and the summary table of the report.\par
+The detailed table includes: customer_id (INT), first_name (VARCHAR), last_name (VARCHAR), rental_id (INT), rental_date (TIMESTAMP), inventory_id, film_id (INT) and title (VARCHAR).\par
+The summary table includes: customer_id (INT), film_id (INT) and rental_count (BIGINT).\par
+\par
+A2.  Describe the types of data fields used for the report. \par
+
+\pard{\pntext\f1\'B7\tab}{\*\pn\pnlvlblt\pnf1\pnindent0{\pntxtb\'B7}}\fi-360\li720\sa200\sl276\slmult1 customer_id (INT): specific ID pertaining to each store customer\par
+{\pntext\f1\'B7\tab}first_name (VARCHAR): customer's first name\par
+{\pntext\f1\'B7\tab}last_name (VARCHAR): customer's last name\par
+{\pntext\f1\'B7\tab}rental_id (INT): specific rental ID for every purchase of a rental\par
+{\pntext\f1\'B7\tab}rental_date (TIMESTAMP): date of the rental purchase (excludes timezone)\par
+{\pntext\f1\'B7\tab}inventory_id (INT): specific inventory ID associated with every store item\par
+{\pntext\f1\'B7\tab}film_id (INT): specific ID corresponding to each film title\par
+{\pntext\f1\'B7\tab}title (VARCHAR): title of the film\par
+{\pntext\f1\'B7\tab}rental_count (BIGINT): number of individual film rentals by each customer\par
+
+\pard\sa200\sl276\slmult1\par
+A3.  Identify at least two specific tables from the given dataset that will provide the data necessary for the detailed table section and the summary table section of the report.\par
+The customer and film tables will provide data utilized in both the detailed and summary tables of the report. Data from the rental and inventory tables will be included in the detailed table.\par
+\par
+A4.  Identify at least one field in the detailed table section that will require a custom transformation with a user-defined function and explain why it should be transformed (e.g., you might translate a field with a value of N to No and Y to Yes).\par
+The film_id field will require a custom transformation with a user-defined function. For ease of readability, the number of times a specific film has been rented by a customer should be visibly represented in the data with the COUNT aggregate function. Without this custom transformation, viewers would need to manually count the number of reccuring film rentals by each customer throughout the entire dataset. This transformation will be represented in the summary table.\par
+\par
+A5.  Explain the different business uses of the detailed table section and the summary table section of the report. \par
+The detailed table will offer business owners and stakeholders a more intricate and specific blueprint for operational measures. With additional details such as customers' names, rental ID, rental date, and inventory ID, businesses can more accurately identify customer rental patterns or trends. Owners have the option to manifest data from the detailed table into loyalty reward offers and promotional strategies.\par
+With respect to the summary table, businesses may prefer a quicker overview of their customers associated with the amount of rentals for a particular film. Rather than focus on supplementary details, such as names, titles, and rental dates, owners may desire to view the customer ID, film ID, and rental count as a simplified visual aid for their customer loyalty strategies or promotions. \par
+\par
+A6.  Explain how frequently your report should be refreshed to remain relevant to stakeholders.\par
+ The analysis should be refreshed at least every two weeks to efficiently account for new customers who have joined the trend of renting a movie multiple times. For example, businesses that have implemented a monthly loyalty program which resets or updates at the beginning of the month can allocate time to analyze and reward new customers at the next milestone.\par
+\par
+B.  Provide original code for function(s) in text format that performs the transformation(s) you identified in part A4.\par
+CREATE OR REPLACE FUNCTION count_transformation()\par
+RETURNS TRIGGER\par
+LANGUAGE plpgsql\par
+AS $$\par
+BEGIN\par
+DELETE FROM summary_table;\par
+INSERT INTO summary_table\par
+SELECT customer_id, film_id, COUNT(film_id)\par
+FROM detailed_table\par
+GROUP BY customer_id, film_id \cf1\b\par
+\cf0\b0 ORDER BY COUNT(film_id) DESC;\par
+RETURN NEW;\par
+END;\par
+$$;\par
+\par
+C.  Provide original SQL code in a text format that creates the detailed and summary tables to hold your report table sections.\par
+\i Detailed table\par
+\i0 DROP TABLE IF EXISTS detailed_table;\par
+\par
+CREATE TABLE detailed_table (\par
+customer_id INT,\par
+first_name VARCHAR,\par
+last_name VARCHAR,\par
+rental_id INT,\par
+rental_date TIMESTAMP,\par
+inventory_id INT,\par
+film_id INT,\par
+title VARCHAR);\par
+\i\par
+Summary table\par
+\i0 DROP TABLE IF EXISTS summary_table;\par
+\par
+CREATE TABLE summary_table (\par
+customer_id INT,\par
+film_id INT,\par
+rental_count BIGINT); \cf1\b\par
+\cf0\b0\par
+D.  Provide an original SQL query in a text format that will extract the raw data needed for the detailed section of your report from the source database.\par
+INSERT INTO detailed_table (customer_id, first_name, last_name, rental_id, rental_date, inventory_id, film_id, title)\par
+SELECT c.customer_id, first_name, last_name, rental_id, rental_date, i.inventory_id, f.film_id, title \par
+FROM customer c\par
+JOIN rental r\par
+ON c.customer_id = r.customer_id\par
+JOIN inventory i\par
+ON r.inventory_id = i.inventory_id\par
+JOIN film f\par
+ON i.film_id = f.film_id\par
+ORDER BY customer_id, film_id; \par
+\par
+E.  Provide original SQL code in a text format that creates a trigger on the detailed table of the report that will continually update the summary table as data is added to the detailed table.\par
+DROP TRIGGER IF EXISTS count_transformation_update \par
+ON detailed_table; \par
+CREATE TRIGGER count_transformation_update\par
+AFTER INSERT \cf1\b\par
+\cf0\b0 ON detailed_table\par
+FOR EACH STATEMENT\par
+EXECUTE PROCEDURE count_transformation();\par
+\par
+F.  Provide an original stored procedure in a text format that can be used to refresh the data in both the detailed table and summary table. The procedure should clear the contents of the detailed table and summary table and perform the raw data extraction from part D.\par
+CREATE OR REPLACE PROCEDURE data_refresh()\par
+LANGUAGE plpgsql\par
+AS $$\par
+BEGIN\par
+DELETE FROM detailed_table;\par
+DELETE FROM summary_table;\par
+INSERT INTO detailed_table (customer_id, first_name, last_name, rental_id, rental_date, inventory_id, film_id, title)\par
+SELECT c.customer_id, first_name, last_name, rental_id, rental_date, i.inventory_id, f.film_id, title \par
+FROM customer c\par
+JOIN rental r\par
+ON c.customer_id = r.customer_id\par
+JOIN inventory i\par
+ON r.inventory_id = i.inventory_id\par
+JOIN film f\par
+ON i.film_id = f.film_id\par
+ORDER BY customer_id, film_id; \cf1\b\par
+\cf0\b0 END;\par
+$$;\par
+\par
+CALL data_refresh();\par
+\par
+SELECT *\par
+FROM detailed_table;\par
+\par
+SELECT *\par
+FROM summary_table;\par
+\par
+F1.  Identify a relevant job scheduling tool that can be used to automate the stored procedure.\par
+With respect to PostgreSQL, pgAgent would be a viable tool for job scheduling.\par
+\par
+G.  Provide a Panopto video recording that includes the presenter and a vocalized demonstration of the functionality of the code used for the analysis. \par
+Please refer to the Panopto video link:\par
+H.  Acknowledge all utilized sources, including any sources of third-party code, using in-text citations and references. If no sources are used, clearly declare that no sources were used to support your submission.\par
+PostgreSQL Tutorial. (2024, September 8). PostgreSQL Tutorial. {{\field{\*\fldinst{HYPERLINK https://www.postgresqltutorial.com/ }}{\fldrslt{https://www.postgresqltutorial.com/\ul0\cf0}}}}\f0\fs24\par
+\par
+
+\pard\sa200\sl276\slmult1\qc\par
+}
+ 
